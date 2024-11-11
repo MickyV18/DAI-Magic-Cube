@@ -572,64 +572,52 @@ def steepest_ascent_hill_climbing(n, kubus):
     return histori
 
 def random_restart_hill_climbing(n, maks_restart, threshold_akurasi, kubus):
-    # Memulai perhitungan waktu
     start_time = time.perf_counter()
 
-    # Menginisialisasi array history untuk menyimpan informasi
     histori = {
         'skor_kubus_terbaik': None,
         'jumlah_315_terbaik': None,
         'kubus_terbaik': kubus,
         'restart': None,
-        'iterasi': [],
+        'iterasi': None,
+        'iterasi_per_restart': [],
         'skor_kubus': [],
         'jumlah_315': [],
         'elapsed_time': None
     }
 
-    # Menginisialisasi kubus_terbaik dengan kubus yang menjadi input fungsi
     kubus_terbaik = np.copy(kubus)
-
-    # Menginisialisasi skor_kubus_terbaik dengan skor kubus yang menjadi input fungsi
     skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
-
-    # Menghitung jumlah iterasi
     restart = 0
+    iterasi = 0
 
     while (restart < maks_restart):
-        # Membuat konfigurasi kubus baru secara acak untuk restart
         kubus_random = inisialisasi_kubus(n)
-
-        # Melakukan hill climbing dari konfigurasi acak ini sampai mencapai local optimum
         histori_kubus_climbing = steepest_ascent_hill_climbing(n, kubus_random)
         restart += 1
-        iterasi = histori_kubus_climbing['iterasi']
+        
         skor_kubus_climbing = histori_kubus_climbing['skor_kubus_terbaik']
         jumlah_315_climbing = histori_kubus_climbing['jumlah_315_terbaik']
-        kubus_climbing = histori_kubus_climbing['kubus_terbaik']
 
-        # Menyimpan informasi kubus baru
-        histori['iterasi'].append(iterasi)
-        histori['skor_kubus'].append(skor_kubus_climbing)
-        histori['jumlah_315'].append(jumlah_315_climbing)
+        iterasi += histori_kubus_climbing['iterasi']
+        histori['iterasi_per_restart'].append(histori_kubus_climbing['iterasi'])
+        histori['skor_kubus'].append(histori_kubus_climbing['skor_kubus'])
+        histori['jumlah_315'].append(histori_kubus_climbing['jumlah_315'])
 
-        # Jika skor baru lebih baik, update kubus terbaik
         if (skor_kubus_climbing > skor_kubus_terbaik):
-            kubus_terbaik = np.copy(kubus_climbing)
+            kubus_terbaik = np.copy(histori_kubus_climbing['kubus_terbaik'])
             skor_kubus_terbaik = skor_kubus_climbing
             jumlah_315_terbaik = jumlah_315_climbing
 
-            # Jika skor sudah mencapai atau melebihi threshold, hentikan iterasi
             if (skor_kubus_terbaik >= threshold_akurasi):
                 break
 
-    # Update array histori
     histori['skor_kubus_terbaik'] = skor_kubus_terbaik
     histori['jumlah_315_terbaik'] = jumlah_315_terbaik
     histori['kubus_terbaik'] = kubus_terbaik
     histori['restart'] = restart
+    histori['iterasi'] = iterasi
 
-    # Menghitung hasil timing
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
     histori['elapsed_time'] = round(elapsed_time, 3)
@@ -993,7 +981,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
 
     # Genetic Algorithm case
     if button_id == 'button-genetic':
-        histori = genetic_algorithm(population_size=20, kubus=numbers, generations=50, mutation_probability=0.05)
+        histori = genetic_algorithm(population_size=10, kubus=numbers, generations=10000, mutation_probability=0.05)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
@@ -1066,27 +1054,43 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
 
     elif button_id == 'button-random-restart':
-        histori = random_restart_hill_climbing(cube_size, maks_restart=10, threshold_akurasi=98, kubus=numbers)
+        histori = random_restart_hill_climbing(cube_size, maks_restart=3, threshold_akurasi=98, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
+        iterasi = histori['iterasi']  # Get total iterations
+        iterasi_per_restart = ', '.join(f'Restart {i+1}: {iter} iterasi' for i, iter in enumerate(histori['iterasi_per_restart']))
 
-        # Format the iterations per restart
-        iterasi_per_restart = ', '.join(f'Restart {i+1}: {iter} iterasi' for i, iter in enumerate(histori['iterasi']))
 
-        # Modify success_text to include the number of iterations per restart
+        # Create a flattened list of all scores from all restarts
+        all_scores = []
+        for scores in histori['skor_kubus']:
+            if isinstance(scores, list):  # If it's a list of scores from one restart
+                all_scores.extend(scores)
+            else:  # If it's a single score
+                all_scores.append(scores)
+
         success_text = html.Div([
             html.Div(f'Persentase Sukses: {persentase_sukses}%', style={'marginBottom': '5px'}),
             html.Div(f'Jumlah Elemen 315: {jumlah_315}', style={'marginBottom': '5px'}),
             html.Div(f'Durasi: {durasi} detik', style={'marginBottom': '5px'}),
-            html.Div('Iterasi per Restart:', style={'marginBottom': '5px'}),
+            html.Div(f'Total Iterasi: {iterasi}', style={'marginBottom': '5px'}),
             html.Div(iterasi_per_restart, style={'marginBottom': '5px'})
         ])
 
         # Update progress chart for Random Restart Hill Climbing
-        progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines+markers', name='Success Percentage per Restart'))
-        progress_figure.update_layout(title="Progress Across Restarts", xaxis_title="Restart", yaxis_title="Success Percentage")
-
+        x_values = list(range(1, len(all_scores) + 1))  # Create x-axis values
+        progress_figure.add_trace(go.Scatter(
+            x=x_values,
+            y=all_scores,
+            mode='lines+markers',
+            name='Success Percentage'
+        ))
+        progress_figure.update_layout(
+            title="Progress Over Iterations",
+            xaxis_title="Iteration",
+            yaxis_title="Success Percentage"
+        )
     # Return updated figures and text
     return optimized_figure, success_text, progress_figure, probability_figure, *disable_all
 
