@@ -612,7 +612,7 @@ app.layout = html.Div([
             html.H3("Before", style={'textAlign': 'center'}),
             dcc.Graph(id='initial-cube-graph', figure=create_scatter_data(cube_size, numbers)),
             html.Div(
-                f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}', 
+                f'Objective Function: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}', 
                 style={'textAlign': 'center', 'marginTop': '10px', 'backgroundColor': '#587ca4', 'color': 'white', 'padding': '10px', 'borderRadius': '5px'}
             )
         ], style={'flex': '1', 'padding': '10px', 'border': '2px solid #587ca4', 'borderRadius': '8px', 'margin': '10px'}),
@@ -666,7 +666,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
             yaxis_title="Success Percentage"
         )
         return [create_scatter_data(cube_size, numbers), 
-                f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
+                f'Objective Function: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
                 empty_chart, empty_chart,
                 False, False, False, False, False, False]
 
@@ -679,7 +679,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
             yaxis_title="Success Percentage"
         )
         return [create_scatter_data(cube_size, numbers), 
-                f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
+                f'Objective Function: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
                 empty_chart, empty_chart,
                 False, False, False, False, False, True]
 
@@ -695,7 +695,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
         iterasi = histori['iterasi']
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
+        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
         
         # Update progress chart
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -706,7 +706,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
+        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
         
         # Update progress chart
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -722,7 +722,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
         iterasi = histori['iterasi']
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
+        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
         
         # Update progress chart
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -734,7 +734,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         iterasi = histori['iterasi']
         durasi = histori['elapsed_time']
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
+        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
 
         # Update progress chart for Sideways Move Hill Climbing
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -745,7 +745,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
+        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
 
         # Update progress chart for Random Restart Hill Climbing
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines+markers', name='Success Percentage per Restart'))
