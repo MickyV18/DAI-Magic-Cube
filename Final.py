@@ -1066,7 +1066,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
 
     elif button_id == 'button-random-restart':
-        histori = random_restart_hill_climbing(cube_size, maks_restart=2, threshold_akurasi=98, kubus=numbers)
+        histori = random_restart_hill_climbing(cube_size, maks_restart=10, threshold_akurasi=98, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
@@ -1087,6 +1087,8 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines+markers', name='Success Percentage per Restart'))
         progress_figure.update_layout(title="Progress Across Restarts", xaxis_title="Restart", yaxis_title="Success Percentage")
 
+    # Return updated figures and text
+    return optimized_figure, success_text, progress_figure, probability_figure, *disable_all
 
 
 if __name__ == '__main__':
