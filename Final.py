@@ -417,6 +417,7 @@ def steepest_ascent_hill_climbing(n, kubus):
 
     # Melakukan iterasi sampai tidak ada perbaikan skor
     while (True):
+        print("Iterasi:", iterasi)
         # Memilih neighbor terbaik dari setiap kemungkinan neighbor dari current state kubus_terbaik
         kubus_baru, improvisasi_skor = generate_best_neighbors_steepest(n, kubus_terbaik)
 
@@ -692,7 +693,9 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         histori = stochastic_hill_climbing(cube_size, maks_iterasi=10000, threshold_akurasi=98, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
+        durasi = histori['elapsed_time']
+        iterasi = histori['iterasi']
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
         
         # Update progress chart
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -701,8 +704,9 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
     elif button_id == 'button-simulated':
         histori = simulated_annealing(cube_size, maks_iterasi=10000, threshold_akurasi=100, temperatur_awal=100,  minimum_temperatur= 1e-10, laju_penurunan=0.95, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
-        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])        
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
+        durasi = histori['elapsed_time']
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
         
         # Update progress chart
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -716,7 +720,9 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         histori = steepest_ascent_hill_climbing(cube_size, numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
+        durasi = histori['elapsed_time']
+        iterasi = histori['iterasi']
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
         
         # Update progress chart
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -726,7 +732,9 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         histori = sideways_move_hill_climbing(cube_size, kubus=numbers, maks_iterasi_stagnan=50)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
+        iterasi = histori['iterasi']
+        durasi = histori['elapsed_time']
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik | Iterasi: {iterasi}'
 
         # Update progress chart for Sideways Move Hill Climbing
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
@@ -736,7 +744,8 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         histori = random_restart_hill_climbing(cube_size, maks_restart=10, threshold_akurasi=98, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
+        durasi = histori['elapsed_time']
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
 
         # Update progress chart for Random Restart Hill Climbing
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines+markers', name='Success Percentage per Restart'))
