@@ -518,6 +518,187 @@ def random_restart_hill_climbing(n, maks_restart, threshold_akurasi, kubus):
 
     return histori
 
+def inisialisasi_populasi(population_size):
+    n = 5
+    population = []
+    for _ in range (population_size):
+        kubus_baru = inisialisasi_kubus(n)
+        akurasi, jumlah_315 = cek_spesifikasi(n, kubus_baru)
+        population.append({
+            'kubus': kubus_baru,
+            'akurasi': akurasi,
+            'jumlah_315': jumlah_315
+        })
+    return population
+
+def crossover(parent1, parent2, n, c_point = None):
+
+  if c_point is not None:
+    if not (1 <= c_point <= n**3 -1):
+      print ("c_point harus antara 1 dan " + str(n**3 -1))
+      return
+  else:
+    c_point = random.randint(1, n**3 -1)
+
+    parent1_1d = []
+    parent2_1d = []
+
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                parent1_1d.append(parent1[i][j][k])
+                parent2_1d.append(parent2[i][j][k])
+
+    # Ambil bagian pertama dari parent1 untuk child1
+    child1_part1 = parent1_1d[:c_point]
+
+    # Ambil bagian kedua dari parent2, tapi hanya angka yang belum ada di child1_part1
+    child1_part2 = []
+    used_numbers = set(child1_part1)
+    for num in parent2_1d[c_point:]:
+        if num not in used_numbers:
+            child1_part2.append(num)
+            used_numbers.add(num)
+
+    # Jika masih ada angka yang kurang, tambahkan dari angka yang belum digunakan
+    all_numbers = set(range(1, n**3 + 1))
+    remaining_numbers = list(all_numbers - used_numbers)
+    child1_part2.extend(remaining_numbers)
+
+    # Ulangi proses yang sama untuk child2
+    child2_part1 = parent2_1d[:c_point]
+    child2_part2 = []
+    used_numbers = set(child2_part1)
+    for num in parent1_1d[c_point:]:
+        if num not in used_numbers:
+            child2_part2.append(num)
+            used_numbers.add(num)
+
+    # Tambahkan angka yang kurang untuk child2
+    all_numbers = set(range(1, n**3 + 1))
+    remaining_numbers = list(all_numbers - used_numbers)
+    child2_part2.extend(remaining_numbers)
+
+    # Gabungkan bagian-bagian
+    child1_1d = child1_part1 + child1_part2
+    child2_1d = child2_part1 + child2_part2
+
+    # Verifikasi bahwa setiap child memiliki angka unik
+    assert len(set(child1_1d)) == n**3, "Child1 memiliki angka yang berulang"
+    assert len(set(child2_1d)) == n**3, "Child2 memiliki angka yang berulang"
+    assert all(1 <= x <= n**3 for x in child1_1d), "Child1 memiliki angka di luar range"
+    assert all(1 <= x <= n**3 for x in child2_1d), "Child2 memiliki angka di luar range"
+
+    # Copy parents dan isi dengan nilai baru
+    child1 = np.array(child1_1d).reshape((n, n, n))
+    child2 = np.array(child2_1d).reshape((n, n, n))
+
+    child1_akurasi, child1_jumlah_315 = cek_spesifikasi(n, child1)
+    child2_akurasi, child2_jumlah_315 = cek_spesifikasi(n, child2)
+
+    return (
+        child1, {'akurasi': child1_akurasi, 'jumlah_315': child1_jumlah_315},
+        child2, {'akurasi': child2_akurasi, 'jumlah_315': child2_jumlah_315}
+    )
+
+def genetic_algorithm(population_size, kubus, generations, mutation_probability):
+    n = 5
+    # Memulai perhitungan waktu
+    start_time = time.perf_counter()
+
+    # Menginisialisasi array history untuk menyimpan informasi
+    histori = {
+        'skor_kubus_terbaik': None,
+        'jumlah_315_terbaik': None,
+        'kubus_terbaik': kubus,
+        'evaluasi_per_generasi': [],
+        'elapsed_time': None
+    }
+
+    # Menginisialisasi populasi
+    population = inisialisasi_populasi(population_size)
+
+    for kembang_biak in range(generations):
+        # Ranking populasi berdasarkan skor
+        population = sorted(population, key=lambda x: (x['jumlah_315'], x['akurasi']))
+        rank_population = []
+
+        for rank, individual in enumerate(population, 1):
+            rank_population.append({
+                'kubus': individual['kubus'],
+                'akurasi': individual['akurasi'],
+                'rank': rank
+            })
+
+        # Menghitung probabilitas dari rank
+        total_fitness = 0
+        for individual in rank_population:
+          total_fitness += individual["rank"]
+
+        probabilitas_pemilihan = []
+        for individual in rank_population:
+          probabilitas_pemilihan.append(individual["rank"] / total_fitness)
+
+        new_population = []
+        for _ in range(0, population_size, 2):
+          parent1 = np.random.choice(rank_population, p=probabilitas_pemilihan)
+          parent2 = parent1
+          while parent2['kubus'] is parent1['kubus']:
+            parent2 = np.random.choice(rank_population, p=probabilitas_pemilihan)
+
+          # Crossover populasi
+          child1_kubus, child1_stats, child2_kubus, child2_stats = crossover(parent1['kubus'], parent2['kubus'], 5)
+
+          # Proses mutasi untuk child1
+          if random.random() < mutation_probability:
+              child1_kubus = swap_angka(n, child1_kubus)
+              child1_akurasi, child1_jumlah_315 = cek_spesifikasi(n, child1_kubus)
+              child1_stats = {'akurasi': child1_akurasi, 'jumlah_315': child1_jumlah_315}
+
+          # Proses mutasi untuk child2
+          if random.random() < mutation_probability:
+              child2_kubus = swap_angka(n, child2_kubus)
+              child2_akurasi, child2_jumlah_315 = cek_spesifikasi(n, child2_kubus)
+              child2_stats = {'akurasi': child2_akurasi, 'jumlah_315': child2_jumlah_315}
+
+          new_population.extend([
+              {'kubus': child1_kubus, 'akurasi': child1_stats['akurasi'], 'jumlah_315' : child1_stats['jumlah_315']},
+              {'kubus': child2_kubus, 'akurasi': child2_stats['akurasi'], 'jumlah_315' : child2_stats['jumlah_315']}
+          ])
+
+        # Update populasi dengan populasi baru
+        population = new_population
+
+        avg_jumlah_per_generasi = sum(individu['jumlah_315'] for individu in population) / len(population)
+        avg_akurasi_per_generasi = sum(individu['akurasi'] for individu in population) / len(population)
+        maks_jumlah_per_generasi = max(individu['jumlah_315'] for individu in population)
+        maks_akurasi_per_generasi = max(individu['akurasi'] for individu in population)
+        kubus_terbaik_per_generasi = max(population, key=lambda x: (x['jumlah_315'], x['akurasi']))['kubus']
+
+        histori['evaluasi_per_generasi'].append({
+            'avg_jumlah_generasi': round(avg_jumlah_per_generasi, 3),
+            'avg_skor_generasi': round(avg_akurasi_per_generasi, 3),
+            'jumlah_terbaik_generasi': maks_jumlah_per_generasi,
+            'skor_terbaik_generasi': maks_akurasi_per_generasi,
+            'kubus_terbaik_generasi': kubus_terbaik_per_generasi
+        })
+
+    # Cari kubus terbaik berdasarkan total_selisih
+    best_kubus_entry = max(population, key=lambda x: (x['jumlah_315'], x['akurasi']))
+    best_kubus = best_kubus_entry['kubus']
+
+    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, best_kubus)
+    histori['skor_kubus_terbaik'] = skor_kubus_terbaik
+    histori['jumlah_315_terbaik'] = jumlah_315_terbaik
+    histori['kubus_terbaik'] = best_kubus
+
+    # Menghitung hasil timing
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    histori['elapsed_time'] = round(elapsed_time, 3)
+
+    return histori
+
 def create_scatter_data(cube_size, numbers):
     # Create 3D scatter data
     normalized_values = (numbers.flatten() - numbers.min()) / (numbers.max() - numbers.min())
@@ -603,6 +784,7 @@ app.layout = html.Div([
         html.Button('Random Restart Hill Climbing', id='button-random-restart', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
         html.Button('Stochastic Hill Climbing', id='button-stochastic', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
         html.Button('Simulated Annealing', id='button-simulated', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
+        html.Button('Genetic Algorithm', id='button-genetic', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
         html.Button('Reset', id='button-reset', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px', 'backgroundColor': '#e57373', 'color': 'white'}),
     ], style={'display': 'flex', 'justify-content': 'center', 'padding': '10px'}),
 
@@ -649,15 +831,17 @@ app.layout = html.Div([
      Output('button-best', 'disabled'),
      Output('button-sideways', 'disabled'),
      Output('button-random-restart', 'disabled'),
+     Output('button-genetic', 'disabled'),
      Output('button-reset', 'disabled')],
     [Input('button-stochastic', 'n_clicks'),
      Input('button-simulated', 'n_clicks'),
      Input('button-best', 'n_clicks'),
      Input('button-sideways', 'n_clicks'),
      Input('button-random-restart', 'n_clicks'),
-     Input('button-reset', 'n_clicks')]
+     Input('button-genetic', 'n_clicks'),
+     Input('button-reset', 'n_clicks')],
 )
-def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_clicks_sideways, n_clicks_random_restart, n_clicks_reset):
+def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_clicks_sideways, n_clicks_random_restart, n_clicks_genetic, n_clicks_reset):
     ctx = dash.callback_context
     if not ctx.triggered:
         empty_chart = go.Figure()
@@ -666,9 +850,9 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
             yaxis_title="Success Percentage"
         )
         return [create_scatter_data(cube_size, numbers), 
-                f'Objective Function: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
+                f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
                 empty_chart, empty_chart,
-                False, False, False, False, False, False]
+                False, False, False, False, False, False, False]
 
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
@@ -679,17 +863,34 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
             yaxis_title="Success Percentage"
         )
         return [create_scatter_data(cube_size, numbers), 
-                f'Objective Function: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
+                f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
                 empty_chart, empty_chart,
-                False, False, False, False, False, True]
+                False, False, False, False, False, False, True]
 
     optimized_figure = None
     success_text = None
     progress_figure = go.Figure()
     probability_figure = go.Figure()
-    disable_all = [True, True, True, True, True, False]
-    
-    if button_id == 'button-stochastic':
+    disable_all = [True, True, True, True, True, True, False]
+
+    # Genetic Algorithm case
+    if button_id == 'button-genetic':
+        histori = genetic_algorithm(population_size=20, kubus=numbers, generations=50, mutation_probability=0.05)
+        optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
+        durasi = histori['elapsed_time']
+        success_text = html.Div([
+            html.Div(f'Persentase Sukses: {persentase_sukses}%', style={'marginBottom': '5px'}),
+            html.Div(f'Jumlah Elemen 315: {jumlah_315}', style={'marginBottom': '5px'}),
+            html.Div(f'Durasi: {durasi} detik', style={'marginBottom': '5px'})
+        ])
+
+        # Update progress chart to show average score per generation
+        generations = [i+1 for i in range(len(histori['evaluasi_per_generasi']))]
+        avg_scores = [gen['avg_skor_generasi'] for gen in histori['evaluasi_per_generasi']]
+        progress_figure.add_trace(go.Scatter(x=generations, y=avg_scores, mode='lines+markers', name='Avg Accuracy per Generation'))
+        progress_figure.update_layout(title="Genetic Algorithm Progress", xaxis_title="Generation", yaxis_title="Average Accuracy")
+    elif button_id == 'button-stochastic':
         histori = stochastic_hill_climbing(cube_size, maks_iterasi=10000, threshold_akurasi=98, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
