@@ -94,178 +94,428 @@ def generate_best_neighbors(n, kubus):
 
     return kubus_terbaik
 
-def simulated_annealing(n, maks_iterasi, threshold_akurasi, temperatur_awal, laju_penurunan, kubus):
+def generate_best_neighbors_sideways(n, kubus):
+    # Menginisialisasi kubus terbaik dengan kubus yang menjadi input fungsi
     kubus_terbaik = np.copy(kubus)
     skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
-    minimum_temperatur = 1e-8
-    temperatur = temperatur_awal
-    iterasi = 0
+    improvisasi_skor = False
 
-    # Membuat kubus_baru dengan initial state yang baru
-    kubus_baru = np.copy(kubus)
-    skor_kubus_baru, jumlah_315_baru = cek_spesifikasi(n, kubus_baru)
-    
-    # Track progress and probability data
-    progress_data = []
-    probability_data = []
+    # Memeriksa semua kemungkinan neighbor
+    for i in range (n**3):
+      for j in range (i + 1, n**3):
+        # Menginisialisasi neighbor dari kubus yang menjadi input fungsi dengan melakukan penukaran indeks i dan j
+        kubus_baru = np.copy(kubus)
+        posisi1 = np.unravel_index(i, (n, n, n))
+        posisi2 = np.unravel_index(j, (n, n, n))
+        kubus_baru[posisi1], kubus_baru[posisi2] = kubus_baru[posisi2], kubus_baru[posisi1]
 
-    while (iterasi < maks_iterasi) and (temperatur > minimum_temperatur):
+        # Menghitung skor kubus neighbor
+        skor_kubus_baru, jumlah_315_baru = cek_spesifikasi(n, kubus_baru)
 
-        # Membuat kubus_temp yang dihasilkan dengan fungsi swap_angka terhadap kubus_baru
-        kubus_temp = swap_angka(n, np.copy(kubus_baru))
-        skor_kubus_temp, jumlah_315_temp = cek_spesifikasi(n, kubus_temp)
-
-        # Menghitung perbedaan antara skor kubus_temp dan kubus_baru
-        skor_delta = skor_kubus_temp - skor_kubus_baru
-
-        # Menerima kubus_temp dengan skor yang lebih baik atau dengan probabilitas jika skor lebih rendah
-        if skor_delta > 0:
-            kubus_baru = np.copy(kubus_temp)
-            skor_kubus_baru = skor_kubus_temp
-            jumlah_315_baru = jumlah_315_temp
-        else:
-            probabilitas = np.exp(skor_delta / temperatur)
-            probability_data.append({
-                'iteration': iterasi,
-                'probability': probabilitas
-            })
-            
-            # Print probabilitas dan temperatur untuk setiap iterasi jika skor lebih rendah
-            print(f"Iteration {iterasi}: Probabilitas menerima skor lebih rendah = {probabilitas}, Temperatur = {temperatur}")
-            
-            if random.random() < probabilitas:
-                kubus_baru = np.copy(kubus_temp)
-                skor_kubus_baru = skor_kubus_temp
-                jumlah_315_baru = jumlah_315_temp
-
-        # Memperbarui kubus terbaik jika skor yang baru ditemukan lebih baik
+        # Update jika menemukan skor yang lebih baik atau setidaknya skor sama tetapi jumlah magic number lebih banyak (dengan catatan, improvisasi_skor bernilai False)
         if skor_kubus_baru > skor_kubus_terbaik:
             kubus_terbaik = np.copy(kubus_baru)
             skor_kubus_terbaik = skor_kubus_baru
             jumlah_315_terbaik = jumlah_315_baru
+            improvisasi_skor = True
+        elif (skor_kubus_baru == skor_kubus_terbaik) and (jumlah_315_baru > jumlah_315_terbaik):
+            kubus_terbaik = np.copy(kubus_baru)
+            jumlah_315_terbaik = jumlah_315_baru
 
-            # Menampilkan informasi pada kubus dengan skor terbaik baru
-            print(f"\nPerbaikan pada iterasi ke-{iterasi}:")
-            print(f"Skor kubus terbaik baru: {skor_kubus_terbaik}")
-            print(f"Jumlah magic number terbaik baru: {jumlah_315_terbaik}")
+    return kubus_terbaik, improvisasi_skor
 
-        # Menurunkan temperatur seiring berjalannya iterasi
-        temperatur *= laju_penurunan
+def sideways_move_hill_climbing(n, kubus, maks_iterasi_stagnan):
+    # Memulai perhitungan waktu
+    start_time = time.perf_counter()
+
+    # Menginisialisasi array history untuk menyimpan informasi
+    hist_iterasi_perbaikan = []
+    hist_skor_kubus = []
+    hist_jumlah_315 = []
+
+    # Menginisialisasi array history untuk menyimpan informasi
+    histori = {
+        'skor_kubus_terbaik': None,
+        'jumlah_315_terbaik': None,
+        'kubus_terbaik': kubus,
+        'iterasi': None,
+        'iterasi_stagnan': None,
+        'skor_kubus': [],
+        'jumlah_315': [],
+        'elapsed_time': None
+    }
+
+    # Menginisialisasi kubus_terbaik dengan kubus yang menjadi input fungsi
+    kubus_terbaik = np.copy(kubus)
+
+    # Menginisialisasi skor_kubus_terbaik dengan skor kubus yang menjadi input fungsi
+    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
+
+    # Menghitung jumlah iterasi
+    iterasi = 0
+    iterasi_stagnan = 0 # Mengamati iterasi yang menghasilkan kubus_baru dengan skor sama yang sama besar dengan kubus_terbaik
+
+    # Melakukan iterasi sampai tidak ada perbaikan skor
+    while (True):
+        print("iterasi:", iterasi)
+        # Memilih neighbor terbaik dari setiap kemungkinan neighbor dari current state kubus_terbaik
+        kubus_baru, improvisasi_skor = generate_best_neighbors_sideways(n, kubus_terbaik)
+
+        # Menghitung skor kubus baru
+        skor_kubus_baru, jumlah_315_baru = cek_spesifikasi(n, kubus_baru)
         iterasi += 1
 
-        # Record progress setiap 10 iterasi
-        if iterasi % 10 == 0:
-            progress_data.append({
-                'iteration': iterasi,
-                'score': skor_kubus_terbaik
-            })
+        # Menyimpan informasi kubus baru
+        histori['skor_kubus'].append(skor_kubus_baru)
+        histori['jumlah_315'].append(jumlah_315_baru)
 
-    # Cetak hasil akhir
-    if iterasi == maks_iterasi:
-        print(f"\nBatas maksimum iterasi ({maks_iterasi}) tercapai.")
-    else:
-        print(f"\nAlgoritma selesai pada iterasi {iterasi}.")
+        # Jika terdapat perbaikan
+        if improvisasi_skor:
+            # Menyimpan informasi kubus_terbaik
+              kubus_terbaik = np.copy(kubus_baru)
+              skor_kubus_terbaik = skor_kubus_baru
+              jumlah_315_terbaik = jumlah_315_baru
 
-    # Cetak visualisasi kondisi terbaik kubus
-    print(f"\nSkor hasil kubus terbaik: {skor_kubus_terbaik}")
-    print(f"Jumlah magic number terbaik: {jumlah_315_terbaik}")
+              # Reset nilai iterasi_stagnan
+              iterasi_stagnan = 0
 
-    return kubus_terbaik, progress_data, probability_data
+              # Jika sudah mencapai skor sempurna (100%), hentikan iterasi
+              if skor_kubus_terbaik == 100:
+                  break
+
+        # Jika tidak ada perbaikan tapi skor sama
+        elif skor_kubus_baru == skor_kubus_terbaik:
+            # Melakukan iterasi terhadap nilai iterasi_stagnan
+            iterasi_stagnan += 1
+
+            # Jika sudah mencapai iterasi_hasil_sama sebanyak maks_iterasi_hasil_sama, hentikan iterasi
+            if iterasi_stagnan >= maks_iterasi_stagnan:
+                break
+
+        else: # Jika tidak ada perbaikan tapi skor lebih buruk, hentikan iterasi
+            break
+
+    # Update array histori
+    histori['skor_kubus_terbaik'] = skor_kubus_terbaik
+    histori['jumlah_315_terbaik'] = jumlah_315_terbaik
+    histori['kubus_terbaik'] = kubus_terbaik
+    histori['iterasi'] = iterasi
+    histori['iterasi_stagnan'] = iterasi_stagnan
+
+    # Menghitung hasil timing
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    histori['elapsed_time'] = round(elapsed_time, 3)
+
+    return histori
+
+def simulated_annealing(n, maks_iterasi, threshold_akurasi, temperatur_awal, minimum_temperatur, laju_penurunan, kubus):
+    # Memulai perhitungan waktu
+    start_time = time.perf_counter()
+
+    # Menginisialisasi array history untuk menyimpan informasi
+    histori = {
+        'skor_kubus_terbaik': None,
+        'jumlah_315_terbaik': None,
+        'kubus_terbaik': kubus,
+        'iterasi': None,
+        'iterasi_local_optima': 0,
+        'skor_kubus': [],
+        'jumlah_315': [],
+        'probabilitas': [],
+        'temperatur': [],
+        'elapsed_time': None
+    }
+
+    # Menginisialisasi kubus terbaik dan kubus sekarang dengan kubus yang menjadi input fungsi
+    kubus_terbaik = np.copy(kubus)
+    kubus_sekarang = np.copy(kubus)
+
+    # Menginisialisasi skor awal
+    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
+    skor_sekarang = skor_kubus_terbaik
+    jumlah_315_sekarang = jumlah_315_terbaik
+
+    # Menginisialisasi parameter temperatur dan iterasi
+    temperatur = temperatur_awal
+    iterasi = 0
+    rejected_streak = 0
+
+    while (iterasi < maks_iterasi) and (temperatur > minimum_temperatur):
+        # Membuat kubus_temp yang dihasilkan dengan fungsi swap_angka terhadap kubus_sekarang
+        kubus_temp = swap_angka(n, np.copy(kubus_sekarang))
+        skor_kubus_temp, jumlah_315_temp = cek_spesifikasi(n, kubus_temp)
+        iterasi += 1
+
+        # Menghitung perbedaan skor dan probabilitas penerimaan
+        skor_delta = skor_kubus_temp - skor_sekarang
+        if skor_delta > 0:
+            probabilitas = 1.0
+        else:
+            # Menghitung probabilitas penerimaan solusi yang lebih buruk
+            probabilitas = np.exp(skor_delta / temperatur)
+
+        # Menyimpan informasi untuk history
+        histori['skor_kubus'].append(skor_sekarang)
+        histori['jumlah_315'].append(jumlah_315_sekarang)
+        histori['probabilitas'].append(probabilitas)
+        histori['temperatur'].append(temperatur)
+
+        # Menentukan apakah menerima solusi baru
+        if random.random() < probabilitas:
+            # Menerima solusi baru
+            kubus_sekarang = np.copy(kubus_temp)
+            skor_sekarang = skor_kubus_temp
+            jumlah_315_sekarang = jumlah_315_temp
+            rejected_streak = 0
+
+            # Update solusi terbaik jika ditemukan yang lebih baik
+            if skor_sekarang > skor_kubus_terbaik:
+                kubus_terbaik = np.copy(kubus_sekarang)
+                skor_kubus_terbaik = skor_sekarang
+                jumlah_315_terbaik = jumlah_315_sekarang
+
+                # Berhenti jika sudah mencapai threshold akurasi
+                if skor_kubus_terbaik >= threshold_akurasi:
+                    break
+        else:
+            # Solusi ditolak, tambah penghitung penolakan berturut-turut
+            rejected_streak += 1
+
+        # Memeriksa apakah terjebak di local optima
+        if rejected_streak >= 10:  # Threshold untuk mendeteksi local optima
+            histori['iterasi_local_optima'] += 1
+            rejected_streak = 0
+            # Menaikkan temperatur sementara untuk keluar dari local optima
+            temperatur = min(temperatur_awal, temperatur * 2)
+        else:
+            # Menurunkan temperatur sesuai jadwal pendinginan
+            if temperatur > minimum_temperatur:
+                temperatur = max(minimum_temperatur, temperatur * laju_penurunan)
+
+    # Update array histori dengan hasil akhir
+    histori['skor_kubus_terbaik'] = skor_kubus_terbaik
+    histori['jumlah_315_terbaik'] = jumlah_315_terbaik
+    histori['kubus_terbaik'] = kubus_terbaik
+    histori['iterasi'] = iterasi
+
+    # Menghitung waktu eksekusi
+    end_time = time.perf_counter()
+    histori['elapsed_time'] = round(end_time - start_time, 3)
+
+    return histori
 
 
 
 def stochastic_hill_climbing(n, maks_iterasi, threshold_akurasi, kubus):
-    kubus_terbaik = kubus
-    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
-    iterasi = 0
-    
-    # Track progress for every iteration
-    progress_data = [{
-        'iteration': 0,
-        'score': skor_kubus_terbaik
-    }]
+    # Memulai perhitungan waktu
+    start_time = time.perf_counter()
 
-    while iterasi < maks_iterasi:
+    # Menginisialisasi array history untuk menyimpan informasi
+    histori = {
+        'skor_kubus_terbaik': None,
+        'jumlah_315_terbaik': None,
+        'kubus_terbaik': kubus,
+        'iterasi': None,
+        'skor_kubus': [],
+        'jumlah_315': [],
+        'elapsed_time': None
+    }
+
+    # Menginisialisasi kubus_terbaik dengan kubus yang menjadi input fungsi
+    kubus_terbaik = kubus
+
+    # Menginisialisasi skor_kubus_terbaik dengan skor kubus yang menjadi input fungsi
+    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
+
+    # Menginisialisasi jumlah iterasi dengan nilai 0
+    iterasi = 0
+
+    while (iterasi < maks_iterasi):
+        # Membuat konfigurasi kubus baru dengan menukar angka secara acak
         kubus_baru = swap_angka(n, np.copy(kubus_terbaik))
         skor_kubus_baru, jumlah_315_baru = cek_spesifikasi(n, kubus_baru)
         iterasi += 1
 
+        # Menyimpan informasi kubus baru
+        histori['skor_kubus'].append(skor_kubus_baru)
+        histori['jumlah_315'].append(jumlah_315_baru)
+
+        # Jika skor baru lebih baik atau sama dengan, update kubus terbaik
         if skor_kubus_baru > skor_kubus_terbaik:
             skor_kubus_terbaik = skor_kubus_baru
             jumlah_315_terbaik = jumlah_315_baru
             kubus_terbaik = np.copy(kubus_baru)
 
-            print(f"\nImprovement at iteration {iterasi}:")
-            print(f"New cube score: {skor_kubus_terbaik}")
-            print(f"Magic number count: {jumlah_315_terbaik}")
-
-            if skor_kubus_terbaik >= threshold_akurasi:
-                print(f"Threshold accuracy ({threshold_akurasi}%) reached at iteration {iterasi}!")
+            # Jika skor sudah mencapai atau melebihi threshold, hentikan iterasi
+            if (skor_kubus_terbaik >= threshold_akurasi):
                 break
-        
-        # Record progress for every iteration
-        progress_data.append({
-            'iteration': iterasi,
-            'score': skor_kubus_terbaik
-        })
 
-    if iterasi == maks_iterasi:
-        print(f"\nMaximum iteration limit ({maks_iterasi}) reached.")
-    else:
-        print(f"\nAlgorithm completed at iteration {iterasi}.")
+    # Update array histori
+    histori['skor_kubus_terbaik'] = skor_kubus_terbaik
+    histori['jumlah_315_terbaik'] = jumlah_315_terbaik
+    histori['kubus_terbaik'] = kubus_terbaik
+    histori['iterasi'] = iterasi
 
-    print(f"\nBest cube score: {skor_kubus_terbaik}")
-    print(f"Magic number count: {jumlah_315_terbaik}")
+    # Menghitung hasil timing
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    histori['elapsed_time'] = round(elapsed_time, 3)
 
-    return kubus_terbaik, progress_data
+    return histori
+
+def generate_best_neighbors_steepest(n, kubus):
+    # Menginisialisasi kubus terbaik dengan kubus yang menjadi input fungsi
+    kubus_terbaik = np.copy(kubus)
+    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
+    improvisasi_skor = False
+
+    # Memeriksa semua kemungkinan neighbor
+    for i in range (n**3):
+      for j in range (i + 1, n**3):
+        # Menginisialisasi neighbor dari kubus yang menjadi input fungsi dengan melakukan penukaran indeks i dan j
+        kubus_baru = np.copy(kubus)
+        posisi1 = np.unravel_index(i, (n, n, n))
+        posisi2 = np.unravel_index(j, (n, n, n))
+        kubus_baru[posisi1], kubus_baru[posisi2] = kubus_baru[posisi2], kubus_baru[posisi1]
+
+        # Menghitung skor kubus neighbor
+        skor_kubus_baru, jumlah_315_baru = cek_spesifikasi(n, kubus_baru)
+
+        # Jika skor baru lebih baik, update kubus terbaik
+        if skor_kubus_baru > skor_kubus_terbaik:
+          kubus_terbaik = np.copy(kubus_baru)
+          skor_kubus_terbaik = skor_kubus_baru
+          jumlah_315_terbaik = jumlah_315_baru
+          improvisasi_skor = True
+
+    return kubus_terbaik, improvisasi_skor
 
 def steepest_ascent_hill_climbing(n, kubus):
-    # Initialize the best cube with the input cube
+    # Memulai perhitungan waktu
+    start_time = time.perf_counter()
+
+    # Menginisialisasi array history untuk menyimpan informasi
+    histori = {
+        'skor_kubus_terbaik': None,
+        'jumlah_315_terbaik': None,
+        'kubus_terbaik': kubus,
+        'iterasi': None,
+        'skor_kubus': [],
+        'jumlah_315': [],
+        'elapsed_time': None
+    }
+
+    # Menginisialisasi kubus_terbaik dengan kubus yang menjadi input fungsi
     kubus_terbaik = np.copy(kubus)
 
-    # Initialize the best cube score with the input cube score
+    # Menginisialisasi skor_kubus_terbaik dengan skor kubus yang menjadi input fungsi
     skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
 
-    # Initialize the best cube status with True to start iteration
-    status_kubus_terbaik = True
-
-    # Count the number of iterations
+    # Menghitung jumlah iterasi
     iterasi = 0
 
-    # Iterate until there is no score improvement
-    while status_kubus_terbaik:
-        # Select the best neighbor from all possible neighbors of the current best cube state
-        kubus_baru = generate_best_neighbors(n, kubus_terbaik)
+    # Melakukan iterasi sampai tidak ada perbaikan skor
+    while (True):
+        # Memilih neighbor terbaik dari setiap kemungkinan neighbor dari current state kubus_terbaik
+        kubus_baru, improvisasi_skor = generate_best_neighbors_steepest(n, kubus_terbaik)
 
-        # Calculate the score of the new cube
+        # Menghitung skor kubus baru
         skor_kubus_baru, jumlah_315_baru = cek_spesifikasi(n, kubus_baru)
         iterasi += 1
 
-        # If the new score is better, update the best cube
-        if skor_kubus_baru > skor_kubus_terbaik:
-            kubus_terbaik = np.copy(kubus_baru)
-            skor_kubus_terbaik = skor_kubus_baru
-            jumlah_315_terbaik = jumlah_315_baru
+        # Menyimpan informasi kubus baru
+        histori['skor_kubus'].append(skor_kubus_baru)
+        histori['jumlah_315'].append(jumlah_315_baru)
 
-            print(f"\nImprovement in iteration {iterasi}:")
-            print(f"New best cube score: {skor_kubus_terbaik}")
-            print(f"Magic number count: {jumlah_315_terbaik}")
-
-            # Stop if the perfect score (100%) is reached
-            if skor_kubus_terbaik == 100:
-                print(f"\nPerfect solution found in iteration {iterasi}!")
-                break
-
-        else:
-            # If there is no improvement, stop the iteration
-            status_kubus_terbaik = False
-            print(f"\nAlgorithm completed in iteration {iterasi}.")
+        if not improvisasi_skor:
             break
 
-    print(f"\nBest cube score: {skor_kubus_terbaik}")
-    print(f"Best magic number count: {jumlah_315_terbaik}")
+        kubus_terbaik = np.copy(kubus_baru)
+        skor_kubus_terbaik = skor_kubus_baru
+        jumlah_315_terbaik = jumlah_315_baru
 
-    return kubus_terbaik
+        # Jika sudah mencapai skor sempurna (100%), hentikan iterasi
+        if skor_kubus_terbaik == 100:
+            break
+
+    # Update array histori
+    histori['skor_kubus_terbaik'] = skor_kubus_terbaik
+    histori['jumlah_315_terbaik'] = jumlah_315_terbaik
+    histori['kubus_terbaik'] = kubus_terbaik
+    histori['iterasi'] = iterasi
+
+    # Menghitung hasil timing
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    histori['elapsed_time'] = round(elapsed_time, 3)
+
+    return histori
+
+def random_restart_hill_climbing(n, maks_restart, threshold_akurasi, kubus):
+    # Memulai perhitungan waktu
+    start_time = time.perf_counter()
+
+    # Menginisialisasi array history untuk menyimpan informasi
+    histori = {
+        'skor_kubus_terbaik': None,
+        'jumlah_315_terbaik': None,
+        'kubus_terbaik': kubus,
+        'restart': None,
+        'iterasi': [],
+        'skor_kubus': [],
+        'jumlah_315': [],
+        'elapsed_time': None
+    }
+
+    # Menginisialisasi kubus_terbaik dengan kubus yang menjadi input fungsi
+    kubus_terbaik = np.copy(kubus)
+
+    # Menginisialisasi skor_kubus_terbaik dengan skor kubus yang menjadi input fungsi
+    skor_kubus_terbaik, jumlah_315_terbaik = cek_spesifikasi(n, kubus_terbaik)
+
+    # Menghitung jumlah iterasi
+    restart = 0
+
+    while (restart < maks_restart):
+        # Membuat konfigurasi kubus baru secara acak untuk restart
+        kubus_random = inisialisasi_kubus(n)
+
+        # Melakukan hill climbing dari konfigurasi acak ini sampai mencapai local optimum
+        histori_kubus_climbing = steepest_ascent_hill_climbing(n, kubus_random)
+        restart += 1
+        iterasi = histori_kubus_climbing['iterasi']
+        skor_kubus_climbing = histori_kubus_climbing['skor_kubus_terbaik']
+        jumlah_315_climbing = histori_kubus_climbing['jumlah_315_terbaik']
+        kubus_climbing = histori_kubus_climbing['kubus_terbaik']
+
+        # Menyimpan informasi kubus baru
+        histori['iterasi'].append(iterasi)
+        histori['skor_kubus'].append(skor_kubus_climbing)
+        histori['jumlah_315'].append(jumlah_315_climbing)
+
+        # Jika skor baru lebih baik, update kubus terbaik
+        if (skor_kubus_climbing > skor_kubus_terbaik):
+            kubus_terbaik = np.copy(kubus_climbing)
+            skor_kubus_terbaik = skor_kubus_climbing
+            jumlah_315_terbaik = jumlah_315_climbing
+
+            # Jika skor sudah mencapai atau melebihi threshold, hentikan iterasi
+            if (skor_kubus_terbaik >= threshold_akurasi):
+                break
+
+    # Update array histori
+    histori['skor_kubus_terbaik'] = skor_kubus_terbaik
+    histori['jumlah_315_terbaik'] = jumlah_315_terbaik
+    histori['kubus_terbaik'] = kubus_terbaik
+    histori['restart'] = restart
+
+    # Menghitung hasil timing
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    histori['elapsed_time'] = round(elapsed_time, 3)
+
+    return histori
 
 def create_scatter_data(cube_size, numbers):
     # Create 3D scatter data
@@ -348,6 +598,8 @@ app.layout = html.Div([
 
     html.Div([
         html.Button('Steepest Hill Climbing', id='button-best', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
+        html.Button('Sideways Move Hill Climbing', id='button-sideways', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
+        html.Button('Random Restart Hill Climbing', id='button-random-restart', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
         html.Button('Stochastic Hill Climbing', id='button-stochastic', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
         html.Button('Simulated Annealing', id='button-simulated', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px'}),
         html.Button('Reset', id='button-reset', n_clicks=0, disabled=False, style={'padding': '10px', 'margin': '5px', 'font-size': '16px', 'backgroundColor': '#e57373', 'color': 'white'}),
@@ -394,14 +646,17 @@ app.layout = html.Div([
      Output('button-stochastic', 'disabled'),
      Output('button-simulated', 'disabled'),
      Output('button-best', 'disabled'),
+     Output('button-sideways', 'disabled'),
+     Output('button-random-restart', 'disabled'),
      Output('button-reset', 'disabled')],
     [Input('button-stochastic', 'n_clicks'),
      Input('button-simulated', 'n_clicks'),
      Input('button-best', 'n_clicks'),
+     Input('button-sideways', 'n_clicks'),
+     Input('button-random-restart', 'n_clicks'),
      Input('button-reset', 'n_clicks')]
 )
-
-def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_clicks_reset):
+def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_clicks_sideways, n_clicks_random_restart, n_clicks_reset):
     ctx = dash.callback_context
     if not ctx.triggered:
         empty_chart = go.Figure()
@@ -412,7 +667,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         return [create_scatter_data(cube_size, numbers), 
                 f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
                 empty_chart, empty_chart,
-                False, False, False, False]
+                False, False, False, False, False, False]
 
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
@@ -425,110 +680,71 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         return [create_scatter_data(cube_size, numbers), 
                 f'Persentase Sukses: {cek_spesifikasi(cube_size, numbers)[0]}% | Initial Jumlah Elemen 315: {cek_spesifikasi(cube_size, numbers)[1]}',
                 empty_chart, empty_chart,
-                False, False, False, True]
+                False, False, False, False, False, True]
 
     optimized_figure = None
     success_text = None
-    progress_figure = None
-    probability_figure = None
-    disable_all = [True, True, True, False]
-
-    # Start measuring time
-    start_time = time.time()
-
+    progress_figure = go.Figure()
+    probability_figure = go.Figure()
+    disable_all = [True, True, True, True, True, False]
+    
     if button_id == 'button-stochastic':
-        optimized_cube, progress_data = stochastic_hill_climbing(cube_size, maks_iterasi=10000, threshold_akurasi=98, kubus=numbers)
-        optimized_figure = create_scatter_data(cube_size, optimized_cube)
-        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, optimized_cube)
-
-        # Calculate duration
-        duration = time.time() - start_time
-
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {round(duration, 2)} detik'
+        histori = stochastic_hill_climbing(cube_size, maks_iterasi=10000, threshold_akurasi=98, kubus=numbers)
+        optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
         
-        # Create progress chart
-        progress_figure = go.Figure()
-        progress_figure.add_trace(go.Scatter(
-            x=[d['iteration'] for d in progress_data],
-            y=[d['score'] for d in progress_data],
-            mode='lines+markers',
-            name='Stochastic Hill Climbing'
-        ))
-        progress_figure.update_layout(
-            title='Progress of Stochastic Hill Climbing',
-            xaxis_title='Iteration',
-            yaxis_title='Success Percentage'
-        )
+        # Update progress chart
+        progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
+        progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
         
-        # Empty probability chart for stochastic hill climbing
-        probability_figure = go.Figure()
-        probability_figure.update_layout(
-            title='No Probability Data for Stochastic Hill Climbing',
-            xaxis_title='Iteration',
-            yaxis_title='Acceptance Probability'
-        )
-
     elif button_id == 'button-simulated':
-        optimized_cube, progress_data, probability_data = simulated_annealing(cube_size, maks_iterasi=1000, threshold_akurasi=100, temperatur_awal=1000, laju_penurunan=0.99, kubus=numbers)
-        optimized_figure = create_scatter_data(cube_size, optimized_cube)
-        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, optimized_cube)
+        histori = simulated_annealing(cube_size, maks_iterasi=10000, threshold_akurasi=100, temperatur_awal=100,  minimum_temperatur= 1e-10, laju_penurunan=0.95, kubus=numbers)
+        optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])        
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
         
-        duration = time.time() - start_time
+        # Update progress chart
+        progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
+        progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
         
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {round(duration, 2)} detik'
-        
-        # Create progress chart
-        progress_figure = go.Figure()
-        progress_figure.add_trace(go.Scatter(
-            x=[d['iteration'] for d in progress_data],
-            y=[d['score'] for d in progress_data],
-            mode='lines+markers',
-            name='Simulated Annealing'
-        ))
-        progress_figure.update_layout(
-            title='Progress of Simulated Annealing',
-            xaxis_title='Iteration',
-            yaxis_title='Success Percentage'
-        )
-        
-        # Create probability chart
-        probability_figure = go.Figure()
-        probability_figure.add_trace(go.Scatter(
-            x=[d['iteration'] for d in probability_data],
-            y=[d['probability'] for d in probability_data],
-            mode='lines',
-            name='Acceptance Probability'
-        ))
-        probability_figure.update_layout(
-            title='Acceptance Probability over Iterations',
-            xaxis_title='Iteration',
-            yaxis_title='Probability',
-            yaxis=dict(range=[0, 1])
-        )
+        # Update acceptance probability chart
+        probability_figure.add_trace(go.Scatter(y=histori['probabilitas'], mode='lines', name='Acceptance Probability'))
+        probability_figure.update_layout(title="Acceptance Probability Over Iterations", xaxis_title="Iteration", yaxis_title="Acceptance Probability")
 
     elif button_id == 'button-best':
-        optimized_cube = steepest_ascent_hill_climbing(cube_size, numbers)
-        optimized_figure = create_scatter_data(cube_size, optimized_cube)
-        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, optimized_cube)
-        duration = time.time() - start_time
-        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {round(duration, 2)} detik'
+        histori = steepest_ascent_hill_climbing(cube_size, numbers)
+        optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
         
-        # Empty charts for steepest ascent
-        progress_figure = go.Figure()
-        progress_figure.update_layout(
-            title='No Progress Chart for Steepest Ascent',
-            xaxis_title='Iteration',
-            yaxis_title='Success Percentage'
-        )
-        
-        probability_figure = go.Figure()
-        probability_figure.update_layout(
-            title='No Probability Data for Steepest Ascent',
-            xaxis_title='Iteration',
-            yaxis_title='Acceptance Probability'
-        )
+        # Update progress chart
+        progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
+        progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
+    
+    elif button_id == 'button-sideways':
+        histori = sideways_move_hill_climbing(cube_size, kubus=numbers, maks_iterasi_stagnan=50)
+        optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
 
+        # Update progress chart for Sideways Move Hill Climbing
+        progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
+        progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
+
+    elif button_id == 'button-random-restart':
+        histori = random_restart_hill_climbing(cube_size, maks_restart=10, threshold_akurasi=98, kubus=numbers)
+        optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
+        persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
+        success_text = f'Persentase Sukses: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315}'
+
+        # Update progress chart for Random Restart Hill Climbing
+        progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines+markers', name='Success Percentage per Restart'))
+        progress_figure.update_layout(title="Progress Across Restarts", xaxis_title="Restart", yaxis_title="Success Percentage")
+    
+    # Return updated figures and text
     return optimized_figure, success_text, progress_figure, probability_figure, *disable_all
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
