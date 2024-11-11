@@ -981,7 +981,7 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
 
     # Genetic Algorithm case
     if button_id == 'button-genetic':
-        histori = genetic_algorithm(population_size=10, kubus=numbers, generations=10000, mutation_probability=0.05)
+        histori = genetic_algorithm(population_size=10, kubus=numbers, generations=1000, mutation_probability=0.05)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
