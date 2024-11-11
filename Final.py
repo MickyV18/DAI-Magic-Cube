@@ -17,47 +17,165 @@ def hitung_magic_number(n):
 # Define the cek_spesifikasi function
 def cek_spesifikasi(n, kubus):
     magic_number = hitung_magic_number(n)
-    jumlah_skor = 0
-    total_selisih = 0
-    jumlah_315 = 0
-    frekuensi_pemeriksaan = 0
+    jumlah_315 = 0 # Jumlah elemen yang sama dengan 315
+    frekuensi_pemeriksaan = 0 # Banyak iterasi dalam proses pemeriksaan selisih dan skor pada baris, kolom, tiang, diagonal sisi, dan diagonal ruang
 
-    # Row calculation
+    arr_selisih = []  # Menyimpan semua jumlah untuk perhitungan standar deviasi
+
+    # Memeriksa skor pada baris di setiap layer pada kubus
     for i in range(n):
         for j in range(n):
-            jumlah_baris = sum(kubus[i][j][k] for k in range(n))
+            jumlah_baris = 0
+            for k in range(n):
+                jumlah_baris += kubus[i][j][k]
             if jumlah_baris == magic_number:
-                jumlah_skor += 1
                 jumlah_315 += 1
-            total_selisih += abs(jumlah_baris - magic_number)
+            selisih_baris = abs(jumlah_baris - magic_number)
+            arr_selisih.append(selisih_baris) # Menyimpan selisih baris
             frekuensi_pemeriksaan += 1
 
-    # Column calculation
+    # Memeriksa skor pada kolom di setiap layer pada kubus
     for i in range(n):
         for k in range(n):
-            jumlah_kolom = sum(kubus[i][j][k] for j in range(n))
+            jumlah_kolom = 0
+            for j in range(n):
+                jumlah_kolom += kubus[i][j][k]
             if jumlah_kolom == magic_number:
-                jumlah_skor += 1
                 jumlah_315 += 1
-            total_selisih += abs(jumlah_kolom - magic_number)
+            selisih_kolom = abs(jumlah_kolom - magic_number)
+            arr_selisih.append(selisih_kolom) # Menyimpan selisih kolom
             frekuensi_pemeriksaan += 1
 
-    # Tiang calculation
+    # Memeriksa skor pada tiang di setiap layer pada kubus
     for j in range(n):
         for k in range(n):
-            jumlah_tiang = sum(kubus[i][j][k] for i in range(n))
+            jumlah_tiang = 0
+            for i in range(n):
+                jumlah_tiang += kubus[i][j][k]
             if jumlah_tiang == magic_number:
-                jumlah_skor += 1
                 jumlah_315 += 1
-            total_selisih += abs(jumlah_tiang - magic_number)
+            selisih_tiang = abs(jumlah_tiang - magic_number)
+            arr_selisih.append(selisih_tiang) # Menyimpan selisih kolom
             frekuensi_pemeriksaan += 1
 
-    primary_score = (jumlah_skor / frekuensi_pemeriksaan) * 70
-    avg_selisih = total_selisih / frekuensi_pemeriksaan
-    max_possible_selisih = magic_number - 15
-    proximity_ratio = 1 - (avg_selisih / max_possible_selisih)
-    secondary_score = proximity_ratio * 30
-    persentase_sukses = primary_score + secondary_score
+    # Memeriksa diagonal sisi pada layer di sumbu-x dan sumbu-y (diagonal sisi 1)
+    for i in range(n):
+        # Diagonal sisi 1a: dari (i = [0 - n-1], j = 0, k = 0) ke (i = [0 - n-1], j = n-1, k = n-1)
+        jumlah_diagonal_sisi = 0
+        for j in range(n):
+            jumlah_diagonal_sisi += kubus[i][j][j]
+        if jumlah_diagonal_sisi == magic_number:
+            jumlah_315 += 1
+        selisih_diagonal_sisi = abs(jumlah_diagonal_sisi - magic_number)
+        arr_selisih.append(selisih_diagonal_sisi) # Menyimpan selisih diagonal sisi
+        frekuensi_pemeriksaan += 1
+
+        # Diagonal sisi 1b: dari (i = [0 - n-1], j = 0, k = n-1) ke (i = [0 - n-1], j = n-1, k = 0)
+        jumlah_diagonal_sisi = 0
+        for j in range(n):
+            jumlah_diagonal_sisi += kubus[i][j][n-1-j]
+        if jumlah_diagonal_sisi == magic_number:
+            jumlah_315 += 1
+        selisih_diagonal_sisi = abs(jumlah_diagonal_sisi - magic_number)
+        arr_selisih.append(selisih_diagonal_sisi) # Menyimpan selisih diagonal sisi
+        frekuensi_pemeriksaan += 1
+
+    # Memeriksa diagonal sisi pada layer di sumbu-x dan sumbu-z (diagonal sisi 2)
+    for i in range(n):
+        # Diagonal sisi 2a: dari (i = 0, j = [0 - n-1], k = 0) ke (i = n-1, j = [0 - n-1], k = n-1)
+        jumlah_diagonal_sisi = 0
+        for j in range(n):
+            jumlah_diagonal_sisi += kubus[j][i][j]
+        if jumlah_diagonal_sisi == magic_number:
+            jumlah_315 += 1
+        selisih_diagonal_sisi = abs(jumlah_diagonal_sisi - magic_number)
+        arr_selisih.append(selisih_diagonal_sisi) # Menyimpan selisih diagonal sisi
+        frekuensi_pemeriksaan += 1
+
+        # Diagonal sisi 2b: dari (i = 0, j = [0 - n-1], k = n-1) ke (i = n-1, j = [0 - n-1], k = 0)
+        jumlah_diagonal_sisi = 0
+        for j in range(n):
+            jumlah_diagonal_sisi += kubus[j][i][n-1-j]
+        if jumlah_diagonal_sisi == magic_number:
+            jumlah_315 += 1
+        selisih_diagonal_sisi = abs(jumlah_diagonal_sisi - magic_number)
+        arr_selisih.append(selisih_diagonal_sisi) # Menyimpan selisih diagonal sisi
+        frekuensi_pemeriksaan += 1
+
+    # Memeriksa diagonal sisi pada layer di sumbu-y dan sumbu-z (diagonal sisi 3)
+    for i in range(n):
+        # Diagonal sisi 3a: dari (i = 0, j = 0, k = [0 - n-1]) ke (i = n-1, j = n-1, k = [0 - n-1])
+        jumlah_diagonal_sisi = 0
+        for j in range(n):
+            jumlah_diagonal_sisi += kubus[j][j][i]
+        if jumlah_diagonal_sisi == magic_number:
+            jumlah_315 += 1
+        selisih_diagonal_sisi = abs(jumlah_diagonal_sisi - magic_number)
+        arr_selisih.append(selisih_diagonal_sisi) # Menyimpan selisih diagonal sisi
+        frekuensi_pemeriksaan += 1
+
+        # Diagonal sisi 3b: dari (i = 0, j = n-1, k = [0 - n-1]) ke (i = n-1, j = 0, k = [0 - n-1])
+        jumlah_diagonal_sisi = 0
+        for j in range(n):
+            jumlah_diagonal_sisi += kubus[j][n-1-j][i]
+        if jumlah_diagonal_sisi == magic_number:
+            jumlah_315 += 1
+        selisih_diagonal_sisi = abs(jumlah_diagonal_sisi - magic_number)
+        arr_selisih.append(selisih_diagonal_sisi) # Menyimpan selisih diagonal sisi
+        frekuensi_pemeriksaan += 1
+
+    # Memeriksa diagonal ruang
+    # Diagonal ruang 1: dari (0,0,0) ke (n-1,n-1,n-1)
+    jumlah_diagonal_ruang = 0
+    for i in range(n):
+        jumlah_diagonal_ruang += kubus[i][i][i]
+    if jumlah_diagonal_ruang == magic_number:
+        jumlah_315 += 1
+    selisih_diagonal_ruang = abs(jumlah_diagonal_ruang - magic_number)
+    arr_selisih.append(selisih_diagonal_ruang) # Menyimpan selisih diagonal ruang
+    frekuensi_pemeriksaan += 1
+
+    # Diagonal ruang 2: dari (0,0,n-1) ke (n-1,n-1,0)
+    jumlah_diagonal_ruang = 0
+    for i in range(n):
+        jumlah_diagonal_ruang += kubus[i][i][n-1-i]
+    if jumlah_diagonal_ruang == magic_number:
+        jumlah_315 += 1
+    selisih_diagonal_ruang = abs(jumlah_diagonal_ruang - magic_number)
+    arr_selisih.append(selisih_diagonal_ruang) # Menyimpan selisih diagonal ruang
+    frekuensi_pemeriksaan += 1
+
+    # Diagonal ruang 3: dari (0,n-1,0) ke (n-1,0,n-1)
+    jumlah_diagonal_ruang = 0
+    for i in range(n):
+        jumlah_diagonal_ruang += kubus[i][n-1-i][i]
+    if jumlah_diagonal_ruang == magic_number:
+        jumlah_315 += 1
+    selisih_diagonal_ruang = abs(jumlah_diagonal_ruang - magic_number)
+    arr_selisih.append(selisih_diagonal_ruang) # Menyimpan selisih diagonal ruang
+    frekuensi_pemeriksaan += 1
+
+    # Diagonal ruang 4: dari (0,n-1,n-1) ke (n-1,0,0)
+    jumlah_diagonal_ruang = 0
+    for i in range(n):
+        jumlah_diagonal_ruang += kubus[i][n-1-i][n-1-i]
+    if jumlah_diagonal_ruang == magic_number:
+        jumlah_315 += 1
+    selisih_diagonal_ruang = abs(jumlah_diagonal_ruang - magic_number)
+    arr_selisih.append(selisih_diagonal_ruang) # Menyimpan selisih diagonal ruang
+    frekuensi_pemeriksaan += 1
+
+    # Target primer (w1%): Persentase jumlah garis yang tepat sama dengan magic number
+    skor_target_primer = (jumlah_315 / frekuensi_pemeriksaan) * 80
+
+    # Target sekunder (w2%): Menggunakan konsep mean untuk menilai derajat deviasi jumlah terhadap magic number
+    avg_selisih = sum(arr_selisih) / len(arr_selisih)
+    maks_kemungkinan_selisih = magic_number - 15  # Selisih maksimum yang mungkin terjadi
+    rasio_kedekatan = 1 - (avg_selisih / maks_kemungkinan_selisih)
+    skor_target_sekunder = rasio_kedekatan * 20
+
+    # Total skor
+    persentase_sukses = skor_target_primer + skor_target_sekunder
 
     return round(persentase_sukses, 3), jumlah_315
 
@@ -903,17 +1021,23 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
         
     elif button_id == 'button-simulated':
-        histori = simulated_annealing(cube_size, maks_iterasi=10000, threshold_akurasi=100, temperatur_awal=100,  minimum_temperatur= 1e-10, laju_penurunan=0.95, kubus=numbers)
+        histori = simulated_annealing(cube_size, maks_iterasi=10000, threshold_akurasi=100, temperatur_awal=100, minimum_temperatur=1e-10, laju_penurunan=0.95, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
-        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
+        frekuensi_stuck = histori['iterasi_local_optima']  # Retrieve stuck frequency from histori
         
-        # Update progress chart
+        # Modify success_text to include the frequency of 'stuck' instances
+        success_text = html.Div([
+            html.Div(f'Persentase Sukses: {persentase_sukses}%', style={'marginBottom': '5px'}),
+            html.Div(f'Jumlah Elemen 315: {jumlah_315}', style={'marginBottom': '5px'}),
+            html.Div(f'Durasi: {durasi} detik', style={'marginBottom': '5px'}),
+            html.Div(f'Frekuensi Stuck: {frekuensi_stuck} kali', style={'marginBottom': '5px'})
+        ])
+
+        # Update progress and probability charts
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines', name='Success Percentage'))
         progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
-        
-        # Update acceptance probability chart
         probability_figure.add_trace(go.Scatter(y=histori['probabilitas'], mode='lines', name='Acceptance Probability'))
         probability_figure.update_layout(title="Acceptance Probability Over Iterations", xaxis_title="Iteration", yaxis_title="Acceptance Probability")
 
@@ -942,18 +1066,27 @@ def update_cubes(n_clicks_stochastic, n_clicks_simulated, n_clicks_best, n_click
         progress_figure.update_layout(title="Progress Over Iterations", xaxis_title="Iteration", yaxis_title="Success Percentage")
 
     elif button_id == 'button-random-restart':
-        histori = random_restart_hill_climbing(cube_size, maks_restart=10, threshold_akurasi=98, kubus=numbers)
+        histori = random_restart_hill_climbing(cube_size, maks_restart=2, threshold_akurasi=98, kubus=numbers)
         optimized_figure = create_scatter_data(cube_size, histori['kubus_terbaik'])
         persentase_sukses, jumlah_315 = cek_spesifikasi(cube_size, histori['kubus_terbaik'])
         durasi = histori['elapsed_time']
-        success_text = f'Objective Function: {persentase_sukses}% | Jumlah Elemen 315: {jumlah_315} | Durasi: {durasi} detik'
+
+        # Format the iterations per restart
+        iterasi_per_restart = ', '.join(f'Restart {i+1}: {iter} iterasi' for i, iter in enumerate(histori['iterasi']))
+
+        # Modify success_text to include the number of iterations per restart
+        success_text = html.Div([
+            html.Div(f'Persentase Sukses: {persentase_sukses}%', style={'marginBottom': '5px'}),
+            html.Div(f'Jumlah Elemen 315: {jumlah_315}', style={'marginBottom': '5px'}),
+            html.Div(f'Durasi: {durasi} detik', style={'marginBottom': '5px'}),
+            html.Div('Iterasi per Restart:', style={'marginBottom': '5px'}),
+            html.Div(iterasi_per_restart, style={'marginBottom': '5px'})
+        ])
 
         # Update progress chart for Random Restart Hill Climbing
         progress_figure.add_trace(go.Scatter(y=histori['skor_kubus'], mode='lines+markers', name='Success Percentage per Restart'))
         progress_figure.update_layout(title="Progress Across Restarts", xaxis_title="Restart", yaxis_title="Success Percentage")
-    
-    # Return updated figures and text
-    return optimized_figure, success_text, progress_figure, probability_figure, *disable_all
+
 
 
 if __name__ == '__main__':
